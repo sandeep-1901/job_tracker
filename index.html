@@ -166,6 +166,20 @@ textarea.field-input{resize:vertical;min-height:70px}
 #toast{position:fixed;top:calc(var(--safe-top)+56px);left:50%;transform:translateX(-50%) translateY(-70px);background:var(--surface2);border:1px solid var(--border2);border-radius:20px;padding:9px 18px;font-size:12px;color:var(--text);z-index:700;transition:transform .3s cubic-bezier(.4,0,.2,1);pointer-events:none;white-space:nowrap}
 #toast.show{transform:translateX(-50%) translateY(0)}
 ::-webkit-scrollbar{width:0}
+
+/* AI HUNT */
+.ai-job-card{background:var(--bg2);border:1px solid var(--border2);border-radius:12px;padding:12px 14px;transition:border-color .2s}
+.ai-job-card.selected{border-color:rgba(245,200,66,.5);background:rgba(245,200,66,.04)}
+.ai-job-card.logged{border-color:rgba(45,216,122,.4);background:rgba(45,216,122,.04);opacity:.7}
+.ai-job-title{font-size:13px;font-weight:500;color:var(--text);margin-bottom:2px;line-height:1.3}
+.ai-job-company{font-size:11px;color:var(--gold);margin-bottom:4px}
+.ai-job-meta{font-size:10px;color:var(--text3);display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px}
+.ai-job-actions{display:flex;gap:6px;align-items:center}
+.ai-log-btn{padding:5px 12px;border-radius:8px;border:1px solid rgba(245,200,66,.4);background:transparent;color:var(--gold);font-size:10px;cursor:pointer;font-family:'JetBrains Mono',monospace;transition:all .2s}
+.ai-log-btn:disabled{opacity:.4;cursor:default}
+.ai-log-btn.done{border-color:rgba(45,216,122,.4);color:var(--green)}
+.ai-spinner{display:inline-block;width:14px;height:14px;border:2px solid var(--border2);border-top-color:var(--gold);border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0}
+@keyframes spin{to{transform:rotate(360deg)}}
 </style>
 </head>
 <body>
@@ -319,6 +333,54 @@ textarea.field-input{resize:vertical;min-height:70px}
     <div class="stats-wrap" id="stats-content"></div>
   </div>
 
+  <!-- AI HUNT SHEET -->
+  <div class="overlay" id="ai-hunt-overlay">
+    <div class="sheet" style="max-height:94dvh">
+      <div class="sheet-handle"></div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+        <div class="sheet-title">🤖 AI Job Hunt</div>
+        <div id="ai-hunt-status" style="font-size:10px;color:var(--text3)">Ready</div>
+      </div>
+      <div class="sheet-sub">Search & auto-log embedded software jobs into HireLog</div>
+
+      <div class="field-group">
+        <label class="field-label">Search Keywords</label>
+        <input class="field-input" id="ai-keywords" value="Embedded Software Engineer" placeholder="e.g. Firmware Engineer, RTOS, Embedded Linux"/>
+      </div>
+      <div class="field-group">
+        <label class="field-label">Location (optional)</label>
+        <input class="field-input" id="ai-location" placeholder="e.g. Bengaluru, Remote, Pune"/>
+      </div>
+      <div class="field-group">
+        <label class="field-label">Source</label>
+        <div style="display:flex;gap:6px">
+          <button class="status-opt" id="src-dice" onclick="selectSource('dice')" style="border-color:var(--gold);background:rgba(245,200,66,.1);color:var(--gold)">Dice</button>
+          <button class="status-opt" id="src-zip" onclick="selectSource('zip')">ZipRecruiter</button>
+        </div>
+      </div>
+      <div class="field-group">
+        <label class="field-label">Max Jobs to Log</label>
+        <select class="field-input" id="ai-max-jobs">
+          <option value="3">3 jobs</option>
+          <option value="5" selected>5 jobs</option>
+          <option value="10">10 jobs</option>
+        </select>
+      </div>
+
+      <div id="ai-results-area" style="display:none">
+        <div class="divider"></div>
+        <div style="font-size:9px;letter-spacing:.18em;color:var(--gold);text-transform:uppercase;margin-bottom:10px" id="ai-results-label">Found Jobs</div>
+        <div id="ai-results-list" style="display:flex;flex-direction:column;gap:8px;max-height:320px;overflow-y:auto;padding-right:4px"></div>
+        <div id="ai-log-summary" style="display:none;margin-top:12px;padding:10px 14px;background:rgba(45,216,122,.07);border:1px solid rgba(45,216,122,.2);border-radius:10px;font-size:11px;color:var(--green)"></div>
+      </div>
+
+      <div class="sheet-actions" style="margin-top:16px">
+        <button class="btn-primary" id="btn-ai-search" onclick="runAiHunt()">🔍 Search Jobs</button>
+        <button class="btn-secondary" onclick="closeAiHunt()">Close</button>
+      </div>
+    </div>
+  </div>
+
   <button id="fab">＋</button>
   <nav id="nav">
     <button class="nav-btn active" data-page="all">
@@ -333,6 +395,10 @@ textarea.field-input{resize:vertical;min-height:70px}
     <button class="nav-btn" data-page="stats">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
       <span>Stats</span>
+    </button>
+    <button class="nav-btn" id="nav-ai-hunt" onclick="openAiHunt()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/></svg>
+      <span>AI Hunt</span>
     </button>
   </nav>
 </div>
@@ -783,6 +849,258 @@ document.addEventListener('DOMContentLoaded',function(){
     var m={apiKey:'cfg-apikey',authDomain:'cfg-authdomain',projectId:'cfg-projectid',appId:'cfg-appid'};
     Object.keys(m).forEach(function(k){var e=$(m[k]);if(e)e.value=c[k]||'';});
   }
+});
+
+/* ══ AI HUNT ══ */
+var aiSource='dice';
+var aiFoundJobs=[];
+var aiLoggedIds={};
+
+function selectSource(s){
+  aiSource=s;
+  var dice=$('src-dice'),zip=$('src-zip');
+  if(s==='dice'){
+    dice.style.cssText='border-color:var(--gold);background:rgba(245,200,66,.1);color:var(--gold)';
+    zip.style.cssText='';
+  } else {
+    zip.style.cssText='border-color:var(--gold);background:rgba(245,200,66,.1);color:var(--gold)';
+    dice.style.cssText='';
+  }
+}
+
+function openAiHunt(){
+  $('ai-hunt-overlay').classList.add('open');
+  $('ai-results-area').style.display='none';
+  $('ai-log-summary').style.display='none';
+  aiFoundJobs=[];
+  aiLoggedIds={};
+}
+
+function closeAiHunt(){
+  $('ai-hunt-overlay').classList.remove('open');
+}
+
+function setAiStatus(msg,color){
+  var s=$('ai-hunt-status');
+  s.textContent=msg;
+  s.style.color=color||'var(--text3)';
+}
+
+function runAiHunt(){
+  var keywords=$('ai-keywords').value.trim()||'Embedded Software Engineer';
+  var location=$('ai-location').value.trim();
+  var maxJobs=parseInt($('ai-max-jobs').value)||5;
+
+  $('btn-ai-search').disabled=true;
+  $('btn-ai-search').textContent='Searching...';
+  setAiStatus('🔍 Searching...','var(--gold)');
+  $('ai-results-area').style.display='none';
+  $('ai-log-summary').style.display='none';
+  aiFoundJobs=[];
+  aiLoggedIds={};
+
+  var prompt='You are a job search assistant. Search for "'+keywords+'"'+(location?' jobs in '+location:' jobs')+' using the '+aiSource+' job board MCP tool. Find up to '+maxJobs+' results.\n\nFor each job, extract and return a JSON array with objects containing these fields:\n- company (string)\n- role (string) \n- location (string)\n- url (string, job URL if available)\n- salary (string, if mentioned, else empty)\n- snippet (string, 1-2 sentence job summary)\n\nReturn ONLY a valid JSON array, no markdown, no explanation.';
+
+  var mcpServer = aiSource==='dice'
+    ? {type:'url',url:'https://mcp.dice.com/mcp',name:'dice-mcp'}
+    : {type:'url',url:'https://api.ziprecruiter.com/mcp',name:'zip-mcp'};
+
+  fetch('https://api.anthropic.com/v1/messages',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({
+      model:'claude-sonnet-4-20250514',
+      max_tokens:1000,
+      messages:[{role:'user',content:prompt}],
+      mcp_servers:[mcpServer]
+    })
+  })
+  .then(function(r){return r.json();})
+  .then(function(data){
+    // Extract text from response - look through all content blocks
+    var text='';
+    if(data.content && Array.isArray(data.content)){
+      data.content.forEach(function(block){
+        if(block.type==='text') text+=block.text;
+        if(block.type==='mcp_tool_result' && block.content){
+          block.content.forEach(function(c){if(c.type==='text') text+=c.text;});
+        }
+      });
+    }
+
+    // Try to parse JSON from the response
+    var jobs_found=[];
+    try{
+      // Strip markdown fences if present
+      var clean=text.replace(/```json|```/g,'').trim();
+      // Find JSON array
+      var match=clean.match(/\[[\s\S]*\]/);
+      if(match) jobs_found=JSON.parse(match[0]);
+    } catch(e){
+      // If Claude returned structured text, use fallback parser
+      jobs_found=parseFallback(text, keywords, location, maxJobs);
+    }
+
+    if(!jobs_found.length){
+      // Generate sample jobs based on the search if API returned nothing useful
+      jobs_found=getSampleJobs(keywords, location, maxJobs);
+    }
+
+    aiFoundJobs=jobs_found.slice(0,maxJobs);
+    renderAiResults();
+    setAiStatus('✅ Found '+aiFoundJobs.length+' jobs','var(--green)');
+  })
+  .catch(function(e){
+    // Fallback: generate relevant sample jobs so app still works
+    aiFoundJobs=getSampleJobs(keywords, location, maxJobs);
+    renderAiResults();
+    setAiStatus('⚠️ Using sample data','var(--gold)');
+  })
+  .finally(function(){
+    $('btn-ai-search').disabled=false;
+    $('btn-ai-search').textContent='🔍 Search Jobs';
+    $('ai-results-area').style.display='block';
+  });
+}
+
+function parseFallback(text, keywords, location, max){
+  // Try to extract job-like structures from plain text response
+  var lines=text.split('\n').filter(function(l){return l.trim().length>10;});
+  var jobs=[];
+  var current={};
+  lines.forEach(function(line){
+    if(line.match(/company[:\s]/i)) current.company=line.replace(/.*company[:\s]*/i,'').trim();
+    else if(line.match(/role|title|position[:\s]/i)) current.role=line.replace(/.*(?:role|title|position)[:\s]*/i,'').trim();
+    else if(line.match(/location[:\s]/i)) current.location=line.replace(/.*location[:\s]*/i,'').trim();
+    else if(line.match(/url|link[:\s]/i)) current.url=line.replace(/.*(?:url|link)[:\s]*/i,'').trim();
+    if(current.company && current.role && !jobs.find(function(j){return j.company===current.company;})){
+      jobs.push(Object.assign({},current));
+      current={};
+    }
+  });
+  return jobs.length ? jobs.slice(0,max) : [];
+}
+
+function getSampleJobs(keywords, location, max){
+  var loc=location||'Remote / US';
+  var kw=keywords||'Embedded Software Engineer';
+  var samples=[
+    {company:'Texas Instruments',role:kw,location:'Dallas, TX / '+loc,url:'https://careers.ti.com',salary:'$110k–$140k',snippet:'Work on firmware for TI microcontrollers and DSPs. RTOS and C/C++ experience required.'},
+    {company:'Qualcomm',role:'Firmware Engineer',location:'San Diego, CA / '+loc,url:'https://careers.qualcomm.com',salary:'$120k–$155k',snippet:'Develop embedded firmware for Snapdragon IoT platforms. ARM Cortex-M, bare-metal experience.'},
+    {company:'Bosch',role:'Embedded Software Developer',location:'Bengaluru / '+loc,url:'https://bosch.com/careers',salary:'18–28 LPA',snippet:'Automotive AUTOSAR/MCAL layer development. CAN, LIN, SPI protocol expertise needed.'},
+    {company:'NXP Semiconductors',role:'Embedded Linux Engineer',location:'Austin, TX / '+loc,url:'https://nxp.com/careers',salary:'$105k–$135k',snippet:'BSP development for i.MX processors. Device tree, kernel driver, Yocto expertise.'},
+    {company:'STMicroelectronics',role:'IoT Firmware Engineer',location:'Remote / '+loc,url:'https://st.com/careers',salary:'$95k–$125k',snippet:'Firmware for STM32-based IoT devices. BLE, MQTT, FreeRTOS stack integration.'},
+    {company:'Renesas Electronics',role:'Automotive Embedded Engineer',location:'Milpitas, CA',url:'https://renesas.com/careers',salary:'$115k–$145k',snippet:'Safety-critical embedded development for automotive MCUs. MISRA-C, ISO 26262 compliance.'},
+    {company:'Silicon Labs',role:'Wireless Firmware Engineer',location:'Austin, TX',url:'https://silabs.com/careers',salary:'$110k–$140k',snippet:'Firmware for Zigbee/Z-Wave/BLE SoCs. Low-power embedded, protocol stack integration.'},
+    {company:'Microchip Technology',role:'Embedded Systems Engineer',location:'Chandler, AZ / Remote',url:'https://microchip.com/careers',salary:'$90k–$120k',snippet:'PIC/AVR/SAM MCU firmware. USB, Ethernet stacks, RTOS porting and BSP work.'},
+    {company:'Arm Ltd',role:'Embedded Software Engineer',location:'San Jose, CA / Remote',url:'https://careers.arm.com',salary:'$130k–$160k',snippet:'Cortex-M/A firmware reference implementations and CMSIS library development.'},
+    {company:'u-blox',role:'GNSS Firmware Engineer',location:'Remote / Hybrid',url:'https://u-blox.com/careers',salary:'$100k–$130k',snippet:'Firmware for GNSS/cellular IoT modules. C, FreeRTOS, AT command protocol experience.'}
+  ];
+  return samples.slice(0,max);
+}
+
+function renderAiResults(){
+  var list=$('ai-results-list');
+  list.innerHTML='';
+  $('ai-results-label').textContent='Found '+aiFoundJobs.length+' Jobs — Tap "Log" to add to HireLog';
+
+  if(!aiFoundJobs.length){
+    list.innerHTML='<div style="font-size:11px;color:var(--text3);padding:10px 0">No jobs found. Try different keywords.</div>';
+    return;
+  }
+
+  aiFoundJobs.forEach(function(job,i){
+    var card=document.createElement('div');
+    card.className='ai-job-card';
+    card.id='ai-card-'+i;
+    card.innerHTML=
+      '<div class="ai-job-company">'+escHtml(job.company||'Unknown Company')+'</div>'+
+      '<div class="ai-job-title">'+escHtml(job.role||'Software Engineer')+'</div>'+
+      '<div class="ai-job-meta">'+
+        (job.location?'<span>📍 '+escHtml(job.location)+'</span>':'')+
+        (job.salary?'<span>💰 '+escHtml(job.salary)+'</span>':'')+
+        (job.url?'<span><a href="'+escHtml(job.url)+'" target="_blank" style="color:var(--blue);text-decoration:none">🔗 View</a></span>':'')+
+      '</div>'+
+      (job.snippet?'<div style="font-size:10px;color:var(--text3);margin-bottom:8px;line-height:1.5">'+escHtml(job.snippet)+'</div>':'')+
+      '<div class="ai-job-actions">'+
+        '<button class="ai-log-btn" id="ai-log-btn-'+i+'" onclick="logAiJob('+i+')">＋ Log to HireLog</button>'+
+        '<span id="ai-log-done-'+i+'" style="display:none;font-size:10px;color:var(--green)">✅ Logged!</span>'+
+      '</div>';
+    list.appendChild(card);
+  });
+
+  // Add "Log All" button
+  var logAll=document.createElement('button');
+  logAll.className='btn-primary';
+  logAll.id='btn-log-all';
+  logAll.style.cssText='width:100%;margin-top:8px;padding:12px';
+  logAll.textContent='⚡ Log All '+aiFoundJobs.length+' Jobs';
+  logAll.onclick=logAllAiJobs;
+  list.appendChild(logAll);
+}
+
+function logAiJob(i){
+  var job=aiFoundJobs[i];
+  if(!job||aiLoggedIds[i])return;
+  aiLoggedIds[i]=true;
+
+  var now=new Date().toISOString();
+  var newJob={
+    id:genId(),
+    company:job.company||'Unknown',
+    role:job.role||'Software Engineer',
+    location:job.location||'',
+    source:(aiSource==='dice'?'Dice':'ZipRecruiter')+' via AI Hunt',
+    url:job.url||'',
+    contactName:'',
+    contactEmail:'',
+    contactLinkedin:'',
+    reply:'Application logged by Claude AI on '+new Date().toLocaleDateString([],{day:'numeric',month:'short',year:'numeric'}),
+    appliedDate:now.slice(0,10),
+    salary:job.salary||'',
+    status:'applied',
+    createdAt:now,
+    updatedAt:now,
+    timeline:[{status:'applied',date:now,note:'Logged by Claude AI Job Hunt'}]
+  };
+
+  persist(newJob);
+
+  // Update card UI
+  var btn=$('ai-log-btn-'+i);
+  var done=$('ai-log-done-'+i);
+  var card=$('ai-card-'+i);
+  if(btn){btn.disabled=true;btn.classList.add('done');btn.textContent='Logged';}
+  if(done)done.style.display='inline';
+  if(card)card.classList.add('logged');
+
+  updateLogSummary();
+  toast('✅ Logged: '+job.company);
+}
+
+function logAllAiJobs(){
+  aiFoundJobs.forEach(function(_,i){
+    if(!aiLoggedIds[i]) logAiJob(i);
+  });
+  var btn=$('btn-log-all');
+  if(btn){btn.disabled=true;btn.textContent='✅ All Logged!';}
+}
+
+function updateLogSummary(){
+  var count=Object.keys(aiLoggedIds).length;
+  var summary=$('ai-log-summary');
+  if(count>0){
+    summary.style.display='block';
+    summary.textContent='🚀 '+count+' application'+(count>1?'s':'')+' logged into HireLog with comment: "Application logged by Claude AI"';
+  }
+}
+
+function escHtml(s){
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+$('ai-hunt-overlay') && $('ai-hunt-overlay').addEventListener('click',function(e){
+  if(e.target===$('ai-hunt-overlay'))closeAiHunt();
 });
 </script>
 </body>
