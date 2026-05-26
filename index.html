@@ -353,9 +353,10 @@ textarea.field-input{resize:vertical;min-height:70px}
       </div>
       <div class="field-group">
         <label class="field-label">Source</label>
-        <div style="display:flex;gap:6px">
-          <button class="status-opt" id="src-dice" onclick="selectSource('dice')" style="border-color:var(--gold);background:rgba(245,200,66,.1);color:var(--gold)">Dice</button>
-          <button class="status-opt" id="src-zip" onclick="selectSource('zip')">ZipRecruiter</button>
+        <div style="display:flex;gap:6px;flex-wrap:wrap">
+          <button class="status-opt" id="src-indeed" onclick="selectSource('indeed')" style="border-color:var(--gold);background:rgba(245,200,66,.1);color:var(--gold)">Indeed</button>
+          <button class="status-opt" id="src-dice" onclick="selectSource('dice')">Dice</button>
+          <button class="status-opt" id="src-linkedin" onclick="selectSource('linkedin')">LinkedIn</button>
         </div>
       </div>
       <div class="field-group">
@@ -852,20 +853,21 @@ document.addEventListener('DOMContentLoaded',function(){
 });
 
 /* ══ AI HUNT ══ */
-var aiSource='dice';
+var aiSource='indeed';
 var aiFoundJobs=[];
 var aiLoggedIds={};
 
 function selectSource(s){
   aiSource=s;
-  var dice=$('src-dice'),zip=$('src-zip');
-  if(s==='dice'){
-    dice.style.cssText='border-color:var(--gold);background:rgba(245,200,66,.1);color:var(--gold)';
-    zip.style.cssText='';
-  } else {
-    zip.style.cssText='border-color:var(--gold);background:rgba(245,200,66,.1);color:var(--gold)';
-    dice.style.cssText='';
-  }
+  ['indeed','dice','linkedin'].forEach(function(id){
+    var el=$('src-'+id);
+    if(!el)return;
+    if(id===s){
+      el.style.cssText='border-color:var(--gold);background:rgba(245,200,66,.1);color:var(--gold)';
+    } else {
+      el.style.cssText='';
+    }
+  });
 }
 
 function openAiHunt(){
@@ -899,11 +901,31 @@ function runAiHunt(){
   aiFoundJobs=[];
   aiLoggedIds={};
 
-  var prompt='You are a job search assistant. Search for "'+keywords+'"'+(location?' jobs in '+location:' jobs')+' using the '+aiSource+' job board MCP tool. Find up to '+maxJobs+' results.\n\nFor each job, extract and return a JSON array with objects containing these fields:\n- company (string)\n- role (string) \n- location (string)\n- url (string, job URL if available)\n- salary (string, if mentioned, else empty)\n- snippet (string, 1-2 sentence job summary)\n\nReturn ONLY a valid JSON array, no markdown, no explanation.';
+  // LinkedIn: open in new tab since no public API
+  if(aiSource==='linkedin'){
+    var q=encodeURIComponent(keywords);
+    var l=location?encodeURIComponent(location):'';
+    var url='https://www.linkedin.com/jobs/search/?keywords='+q+(l?'&location='+l:'');
+    window.open(url,'_blank');
+    $('btn-ai-search').disabled=false;
+    $('btn-ai-search').textContent='🔍 Search Jobs';
+    setAiStatus('Opened LinkedIn','var(--blue)');
+    toast('🔗 LinkedIn opened — log jobs manually after applying');
+    return;
+  }
 
-  var mcpServer = aiSource==='dice'
-    ? {type:'url',url:'https://mcp.dice.com/mcp',name:'dice-mcp'}
-    : {type:'url',url:'https://api.ziprecruiter.com/mcp',name:'zip-mcp'};
+  // Indeed or Dice: use MCP via Anthropic API
+  var mcpServer = aiSource==='indeed'
+    ? {type:'url',url:'https://mcp.indeed.com/claude/mcp',name:'indeed-mcp'}
+    : {type:'url',url:'https://mcp.dice.com/mcp',name:'dice-mcp'};
+
+  var locStr=location||'remote';
+  var prompt;
+  if(aiSource==='indeed'){
+    prompt='Use the Indeed search_jobs tool to search for "'+keywords+'" jobs'+(location?' in '+location:' (remote or any location')+'. country_code: IN. Return up to '+maxJobs+' results.\n\nFor each job result, extract:\n- company (string)\n- role / title (string)\n- location (string)\n- url (the apply/details link)\n- salary (string, if available, else empty string)\n- snippet (1-2 sentence description)\n\nReturn ONLY a valid JSON array of objects with keys: company, role, location, url, salary, snippet. No markdown, no explanation.';
+  } else {
+    prompt='Use the Dice search_jobs tool to search for keyword "'+keywords+'"'+(location?' location "'+location+'"':'')+'. Get up to '+maxJobs+' results.\n\nFor each job, extract:\n- company (string)\n- role / title (string)\n- location (string)\n- url (detailsPageUrl)\n- salary (string, if available)\n- snippet (summary, 1-2 sentences)\n\nReturn ONLY a valid JSON array with keys: company, role, location, url, salary, snippet. No markdown, no explanation.';
+  }
 
   fetch('https://api.anthropic.com/v1/messages',{
     method:'POST',
@@ -917,7 +939,6 @@ function runAiHunt(){
   })
   .then(function(r){return r.json();})
   .then(function(data){
-    // Extract text from response - look through all content blocks
     var text='';
     if(data.content && Array.isArray(data.content)){
       data.content.forEach(function(block){
@@ -928,31 +949,27 @@ function runAiHunt(){
       });
     }
 
-    // Try to parse JSON from the response
     var jobs_found=[];
     try{
-      // Strip markdown fences if present
       var clean=text.replace(/```json|```/g,'').trim();
-      // Find JSON array
       var match=clean.match(/\[[\s\S]*\]/);
       if(match) jobs_found=JSON.parse(match[0]);
     } catch(e){
-      // If Claude returned structured text, use fallback parser
-      jobs_found=parseFallback(text, keywords, location, maxJobs);
+      jobs_found=parseFallback(text,keywords,location,maxJobs);
     }
 
     if(!jobs_found.length){
-      // Generate sample jobs based on the search if API returned nothing useful
-      jobs_found=getSampleJobs(keywords, location, maxJobs);
+      jobs_found=getSampleJobs(keywords,location,maxJobs);
+      setAiStatus('⚠️ Using sample data','var(--gold)');
+    } else {
+      setAiStatus('✅ Found '+jobs_found.length+' jobs','var(--green)');
     }
 
     aiFoundJobs=jobs_found.slice(0,maxJobs);
     renderAiResults();
-    setAiStatus('✅ Found '+aiFoundJobs.length+' jobs','var(--green)');
   })
-  .catch(function(e){
-    // Fallback: generate relevant sample jobs so app still works
-    aiFoundJobs=getSampleJobs(keywords, location, maxJobs);
+  .catch(function(){
+    aiFoundJobs=getSampleJobs(keywords,location,maxJobs);
     renderAiResults();
     setAiStatus('⚠️ Using sample data','var(--gold)');
   })
@@ -1082,7 +1099,7 @@ function logAiJob(i){
     company:job.company||'Unknown',
     role:job.role||'Software Engineer',
     location:job.location||'',
-    source:(aiSource==='dice'?'Dice':'ZipRecruiter')+' via AI Hunt',
+    source:(aiSource==='indeed'?'Indeed':aiSource==='dice'?'Dice':'LinkedIn')+' via AI Hunt',
     url:job.url||'',
     contactName:'',
     contactEmail:'',
