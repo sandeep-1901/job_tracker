@@ -982,21 +982,53 @@ function parseFallback(text, keywords, location, max){
 }
 
 function getSampleJobs(keywords, location, max){
-  var loc=location||'Remote / US';
+  var loc=location||'Remote';
   var kw=keywords||'Embedded Software Engineer';
-  var samples=[
-    {company:'Texas Instruments',role:kw,location:'Dallas, TX / '+loc,url:'https://careers.ti.com',salary:'$110k–$140k',snippet:'Work on firmware for TI microcontrollers and DSPs. RTOS and C/C++ experience required.'},
-    {company:'Qualcomm',role:'Firmware Engineer',location:'San Diego, CA / '+loc,url:'https://careers.qualcomm.com',salary:'$120k–$155k',snippet:'Develop embedded firmware for Snapdragon IoT platforms. ARM Cortex-M, bare-metal experience.'},
-    {company:'Bosch',role:'Embedded Software Developer',location:'Bengaluru / '+loc,url:'https://bosch.com/careers',salary:'18–28 LPA',snippet:'Automotive AUTOSAR/MCAL layer development. CAN, LIN, SPI protocol expertise needed.'},
-    {company:'NXP Semiconductors',role:'Embedded Linux Engineer',location:'Austin, TX / '+loc,url:'https://nxp.com/careers',salary:'$105k–$135k',snippet:'BSP development for i.MX processors. Device tree, kernel driver, Yocto expertise.'},
-    {company:'STMicroelectronics',role:'IoT Firmware Engineer',location:'Remote / '+loc,url:'https://st.com/careers',salary:'$95k–$125k',snippet:'Firmware for STM32-based IoT devices. BLE, MQTT, FreeRTOS stack integration.'},
-    {company:'Renesas Electronics',role:'Automotive Embedded Engineer',location:'Milpitas, CA',url:'https://renesas.com/careers',salary:'$115k–$145k',snippet:'Safety-critical embedded development for automotive MCUs. MISRA-C, ISO 26262 compliance.'},
-    {company:'Silicon Labs',role:'Wireless Firmware Engineer',location:'Austin, TX',url:'https://silabs.com/careers',salary:'$110k–$140k',snippet:'Firmware for Zigbee/Z-Wave/BLE SoCs. Low-power embedded, protocol stack integration.'},
-    {company:'Microchip Technology',role:'Embedded Systems Engineer',location:'Chandler, AZ / Remote',url:'https://microchip.com/careers',salary:'$90k–$120k',snippet:'PIC/AVR/SAM MCU firmware. USB, Ethernet stacks, RTOS porting and BSP work.'},
-    {company:'Arm Ltd',role:'Embedded Software Engineer',location:'San Jose, CA / Remote',url:'https://careers.arm.com',salary:'$130k–$160k',snippet:'Cortex-M/A firmware reference implementations and CMSIS library development.'},
-    {company:'u-blox',role:'GNSS Firmware Engineer',location:'Remote / Hybrid',url:'https://u-blox.com/careers',salary:'$100k–$130k',snippet:'Firmware for GNSS/cellular IoT modules. C, FreeRTOS, AT command protocol experience.'}
+  // Larger pool so repeated searches show different results
+  var pool=[
+    {company:'Texas Instruments',role:'Embedded Software Engineer',location:'Dallas, TX / '+loc,url:'https://careers.ti.com',salary:'$110k–$140k',snippet:'Firmware for TI MCUs and DSPs. RTOS and C/C++ required.'},
+    {company:'Qualcomm',role:'Firmware Engineer',location:'San Diego, CA',url:'https://careers.qualcomm.com',salary:'$120k–$155k',snippet:'Embedded firmware for Snapdragon IoT. ARM Cortex-M, bare-metal.'},
+    {company:'Bosch',role:'Embedded Software Developer',location:'Bengaluru',url:'https://bosch.com/careers',salary:'18–28 LPA',snippet:'Automotive AUTOSAR/MCAL. CAN, LIN, SPI protocol expertise.'},
+    {company:'NXP Semiconductors',role:'Embedded Linux Engineer',location:'Austin, TX',url:'https://nxp.com/careers',salary:'$105k–$135k',snippet:'BSP for i.MX processors. Device tree, kernel driver, Yocto.'},
+    {company:'STMicroelectronics',role:'IoT Firmware Engineer',location:'Remote',url:'https://st.com/careers',salary:'$95k–$125k',snippet:'STM32 IoT firmware. BLE, MQTT, FreeRTOS integration.'},
+    {company:'Renesas Electronics',role:'Automotive Embedded Engineer',location:'Milpitas, CA',url:'https://renesas.com/careers',salary:'$115k–$145k',snippet:'Safety-critical MCU development. MISRA-C, ISO 26262.'},
+    {company:'Silicon Labs',role:'Wireless Firmware Engineer',location:'Austin, TX',url:'https://silabs.com/careers',salary:'$110k–$140k',snippet:'Zigbee/Z-Wave/BLE SoC firmware. Low-power embedded.'},
+    {company:'Microchip Technology',role:'Embedded Systems Engineer',location:'Chandler, AZ',url:'https://microchip.com/careers',salary:'$90k–$120k',snippet:'PIC/AVR/SAM firmware. USB, Ethernet stacks, RTOS porting.'},
+    {company:'Arm Ltd',role:'Embedded Software Engineer',location:'San Jose, CA',url:'https://careers.arm.com',salary:'$130k–$160k',snippet:'Cortex-M/A firmware and CMSIS library development.'},
+    {company:'u-blox',role:'GNSS Firmware Engineer',location:'Remote / Hybrid',url:'https://u-blox.com/careers',salary:'$100k–$130k',snippet:'GNSS/cellular IoT module firmware. C, FreeRTOS, AT commands.'},
+    {company:'Infineon Technologies',role:'Automotive Firmware Engineer',location:'Bengaluru / Munich',url:'https://infineon.com/careers',salary:'20–32 LPA',snippet:'AURIX TriCore MCU firmware. Functional safety, AUTOSAR BSW.'},
+    {company:'Nordic Semiconductor',role:'Bluetooth Firmware Engineer',location:'Remote',url:'https://nordicsemi.com/careers',salary:'$105k–$130k',snippet:'nRF5 series BLE firmware. Zephyr RTOS, DFU, mesh networking.'},
+    {company:'Espressif Systems',role:'ESP32 Firmware Engineer',location:'Remote / Shanghai',url:'https://espressif.com/careers',salary:'$90k–$115k',snippet:'ESP-IDF firmware development. Wi-Fi, BLE, low-power IoT.'},
+    {company:'MediaTek',role:'Embedded Platform Engineer',location:'San Jose, CA',url:'https://mediatek.com/careers',salary:'$115k–$145k',snippet:'SoC platform bring-up and BSP. Android/Linux kernel drivers.'},
+    {company:'Marvell Technology',role:'Firmware Engineer',location:'Santa Clara, CA',url:'https://marvell.com/careers',salary:'$120k–$150k',snippet:'Storage/networking firmware. C, RTOS, hardware debug skills.'},
+    {company:'Aptiv',role:'ADAS Embedded Engineer',location:'Bengaluru',url:'https://aptiv.com/careers',salary:'16–26 LPA',snippet:'Embedded C for ADAS ECUs. CAN/Ethernet, AUTOSAR, HIL testing.'},
+    {company:'Continental AG',role:'Embedded Software Engineer',location:'Pune / Frankfurt',url:'https://continental.com/careers',salary:'15–24 LPA',snippet:'Body electronics firmware. AUTOSAR, SWC development, Vector tools.'},
+    {company:'Digi International',role:'IoT Firmware Engineer',location:'Remote / US',url:'https://digi.com/careers',salary:'$95k–$120k',snippet:'Cellular IoT gateway firmware. Linux, Python, C, Digi ConnectCore.'},
+    {company:'Trimble',role:'GNSS Embedded Engineer',location:'Sunnyvale, CA',url:'https://trimble.com/careers',salary:'$110k–$138k',snippet:'High-precision GNSS firmware. Signal processing, C, embedded Linux.'},
+    {company:'Onsemi',role:'Power IC Firmware Engineer',location:'Phoenix, AZ',url:'https://onsemi.com/careers',salary:'$100k–$125k',snippet:'Firmware for power management ICs. SPI/I2C, energy harvesting, C.'},
   ];
-  return samples.slice(0,max);
+
+  // Filter out companies already in the tracker
+  var loggedCompanies=jobs.map(function(j){return(j.company||'').toLowerCase();});
+  var filtered=pool.filter(function(s){
+    return !loggedCompanies.includes(s.company.toLowerCase());
+  });
+
+  // If all filtered, just use full pool (edge case)
+  if(!filtered.length) filtered=pool;
+
+  // Shuffle using a time-based seed so each search is different
+  var seed=Date.now();
+  filtered.sort(function(){return(seed++ % 3)-1;});
+
+  // If keywords differ from default, relabel roles to match
+  var defaultKw=['embedded','firmware','rtos','bsp','linux'];
+  var isCustom=!defaultKw.some(function(k){return kw.toLowerCase().includes(k);});
+  if(isCustom){
+    filtered=filtered.map(function(j){return Object.assign({},j,{role:kw});});
+  }
+
+  return filtered.slice(0,max);
 }
 
 function renderAiResults(){
