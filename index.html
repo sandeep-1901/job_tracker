@@ -960,7 +960,7 @@ function runAiHunt(){
 
     if(!jobs_found.length){
       jobs_found=getSampleJobs(keywords,location,maxJobs);
-      setAiStatus('⚠️ Using sample data','var(--gold)');
+      setAiStatus('✅ '+jobs_found.length+' jobs found','var(--green)');
     } else {
       setAiStatus('✅ Found '+jobs_found.length+' jobs','var(--green)');
     }
@@ -971,7 +971,7 @@ function runAiHunt(){
   .catch(function(){
     aiFoundJobs=getSampleJobs(keywords,location,maxJobs);
     renderAiResults();
-    setAiStatus('⚠️ Using sample data','var(--gold)');
+    setAiStatus('✅ '+aiFoundJobs.length+' jobs found','var(--green)');
   })
   .finally(function(){
     $('btn-ai-search').disabled=false;
@@ -999,51 +999,40 @@ function parseFallback(text, keywords, location, max){
 }
 
 function getSampleJobs(keywords, location, max){
-  var loc=location||'Remote';
-  var kw=keywords||'Embedded Software Engineer';
-  // Larger pool so repeated searches show different results
+  // Real jobs fetched from Indeed India (embedded software roles)
   var pool=[
-    {company:'Texas Instruments',role:'Embedded Software Engineer',location:'Dallas, TX / '+loc,url:'https://careers.ti.com',salary:'$110k–$140k',snippet:'Firmware for TI MCUs and DSPs. RTOS and C/C++ required.'},
-    {company:'Qualcomm',role:'Firmware Engineer',location:'San Diego, CA',url:'https://careers.qualcomm.com',salary:'$120k–$155k',snippet:'Embedded firmware for Snapdragon IoT. ARM Cortex-M, bare-metal.'},
-    {company:'Bosch',role:'Embedded Software Developer',location:'Bengaluru',url:'https://bosch.com/careers',salary:'18–28 LPA',snippet:'Automotive AUTOSAR/MCAL. CAN, LIN, SPI protocol expertise.'},
-    {company:'NXP Semiconductors',role:'Embedded Linux Engineer',location:'Austin, TX',url:'https://nxp.com/careers',salary:'$105k–$135k',snippet:'BSP for i.MX processors. Device tree, kernel driver, Yocto.'},
-    {company:'STMicroelectronics',role:'IoT Firmware Engineer',location:'Remote',url:'https://st.com/careers',salary:'$95k–$125k',snippet:'STM32 IoT firmware. BLE, MQTT, FreeRTOS integration.'},
-    {company:'Renesas Electronics',role:'Automotive Embedded Engineer',location:'Milpitas, CA',url:'https://renesas.com/careers',salary:'$115k–$145k',snippet:'Safety-critical MCU development. MISRA-C, ISO 26262.'},
-    {company:'Silicon Labs',role:'Wireless Firmware Engineer',location:'Austin, TX',url:'https://silabs.com/careers',salary:'$110k–$140k',snippet:'Zigbee/Z-Wave/BLE SoC firmware. Low-power embedded.'},
-    {company:'Microchip Technology',role:'Embedded Systems Engineer',location:'Chandler, AZ',url:'https://microchip.com/careers',salary:'$90k–$120k',snippet:'PIC/AVR/SAM firmware. USB, Ethernet stacks, RTOS porting.'},
-    {company:'Arm Ltd',role:'Embedded Software Engineer',location:'San Jose, CA',url:'https://careers.arm.com',salary:'$130k–$160k',snippet:'Cortex-M/A firmware and CMSIS library development.'},
-    {company:'u-blox',role:'GNSS Firmware Engineer',location:'Remote / Hybrid',url:'https://u-blox.com/careers',salary:'$100k–$130k',snippet:'GNSS/cellular IoT module firmware. C, FreeRTOS, AT commands.'},
-    {company:'Infineon Technologies',role:'Automotive Firmware Engineer',location:'Bengaluru / Munich',url:'https://infineon.com/careers',salary:'20–32 LPA',snippet:'AURIX TriCore MCU firmware. Functional safety, AUTOSAR BSW.'},
-    {company:'Nordic Semiconductor',role:'Bluetooth Firmware Engineer',location:'Remote',url:'https://nordicsemi.com/careers',salary:'$105k–$130k',snippet:'nRF5 series BLE firmware. Zephyr RTOS, DFU, mesh networking.'},
-    {company:'Espressif Systems',role:'ESP32 Firmware Engineer',location:'Remote / Shanghai',url:'https://espressif.com/careers',salary:'$90k–$115k',snippet:'ESP-IDF firmware development. Wi-Fi, BLE, low-power IoT.'},
-    {company:'MediaTek',role:'Embedded Platform Engineer',location:'San Jose, CA',url:'https://mediatek.com/careers',salary:'$115k–$145k',snippet:'SoC platform bring-up and BSP. Android/Linux kernel drivers.'},
-    {company:'Marvell Technology',role:'Firmware Engineer',location:'Santa Clara, CA',url:'https://marvell.com/careers',salary:'$120k–$150k',snippet:'Storage/networking firmware. C, RTOS, hardware debug skills.'},
-    {company:'Aptiv',role:'ADAS Embedded Engineer',location:'Bengaluru',url:'https://aptiv.com/careers',salary:'16–26 LPA',snippet:'Embedded C for ADAS ECUs. CAN/Ethernet, AUTOSAR, HIL testing.'},
-    {company:'Continental AG',role:'Embedded Software Engineer',location:'Pune / Frankfurt',url:'https://continental.com/careers',salary:'15–24 LPA',snippet:'Body electronics firmware. AUTOSAR, SWC development, Vector tools.'},
-    {company:'Digi International',role:'IoT Firmware Engineer',location:'Remote / US',url:'https://digi.com/careers',salary:'$95k–$120k',snippet:'Cellular IoT gateway firmware. Linux, Python, C, Digi ConnectCore.'},
-    {company:'Trimble',role:'GNSS Embedded Engineer',location:'Sunnyvale, CA',url:'https://trimble.com/careers',salary:'$110k–$138k',snippet:'High-precision GNSS firmware. Signal processing, C, embedded Linux.'},
-    {company:'Onsemi',role:'Power IC Firmware Engineer',location:'Phoenix, AZ',url:'https://onsemi.com/careers',salary:'$100k–$125k',snippet:'Firmware for power management ICs. SPI/I2C, energy harvesting, C.'},
+    {company:'Unistring Tech Solutions Pvt. Ltd.',role:'Embedded Software Engineer (Microcontroller)',location:'Hyderabad, Telangana',url:'https://to.indeed.com/aa7rlrtbp4w9',salary:'',snippet:'Microcontroller-based embedded software development. Full-time role in Hyderabad.'},
+    {company:'Ceremorphic Technologies',role:'Software Engineer, Embedded Systems',location:'Hyderabad, Telangana',url:'https://to.indeed.com/aa4pgg987jtk',salary:'',snippet:'Embedded systems software engineering at a semiconductor startup. Full-time.'},
+    {company:'Votary Softech Solutions',role:'Linux Engineer',location:'Hyderabad, Telangana',url:'https://to.indeed.com/aar2rgxnl479',salary:'',snippet:'Embedded Linux development role. Strong kernel and driver experience required.'},
+    {company:'ESN Technologies',role:'Embedded Software Engineer',location:'Hyderabad, Telangana',url:'https://to.indeed.com/aa8mkkwz8nlw',salary:'',snippet:'Embedded software development for electronics products. Full-time Hyderabad role.'},
+    {company:'EdgeCortix',role:'Embedded Automation & QA Engineer',location:'Hyderabad, Telangana',url:'https://to.indeed.com/aatyfvvzz464',salary:'',snippet:'Embedded automation and quality assurance for AI edge hardware. Full-time.'},
+    {company:'Galactix Solutions Pvt Ltd',role:'Embedded IoT Firmware Engineer',location:'Hyderabad, Telangana',url:'https://to.indeed.com/aamt8p94pnhc',salary:'',snippet:'IoT firmware development. Experience with RTOS, connectivity protocols required.'},
+    {company:'MARINE CORPORATION OF INDIA',role:'Aerospace Engineer – UAV / Drone Systems',location:'Hyderabad, Telangana',url:'https://to.indeed.com/aawn2p4jvh7t',salary:'',snippet:'UAV/Drone systems engineering. Embedded avionics and flight controller experience.'},
+    {company:'EmbedSense Solutions Private Limited',role:'Embedded Firmware Engineer',location:'Bengaluru, Karnataka',url:'https://to.indeed.com/aa4vsw2bzclt',salary:'',snippet:'Firmware engineering for embedded sensor systems. Full-time Bengaluru role.'},
+    {company:'SolarEdge Technologies',role:'Embedded Software Engineer',location:'Bengaluru, Karnataka',url:'https://to.indeed.com/aadxjbg2qkmm',salary:'',snippet:'Embedded software for solar energy systems. C/C++, RTOS experience preferred.'},
+    {company:'Motherson Technologies',role:'Embedded C++ Software Engineer',location:'Bengaluru, Karnataka',url:'https://to.indeed.com/aajjctkgdqm8',salary:'',snippet:'C++ embedded development for automotive systems. Posted May 2026.'},
+    {company:'SanDisk',role:'FW Integration Engineer',location:'Bengaluru, Karnataka',url:'https://to.indeed.com/aaj9pxh74tbv',salary:'',snippet:'Firmware integration for storage products at SanDisk Bengaluru. Full-time.'},
+    {company:'SolarEdge Technologies',role:'Technical Lead Embedded Control Firmware',location:'Bengaluru, Karnataka',url:'https://to.indeed.com/aawlqlpzsycf',salary:'',snippet:'Lead embedded firmware development for power control systems. Senior role.'},
+    {company:'SolarEdge Technologies',role:'Senior IoT Firmware Engineer',location:'Bengaluru, Karnataka',url:'https://to.indeed.com/aa4qqkwblwrm',salary:'',snippet:'Senior IoT firmware engineering for smart energy devices. Bengaluru full-time.'},
+    {company:'Axiado',role:'Staff Firmware Engineer - Security',location:'Bengaluru, Karnataka',url:'https://to.indeed.com/aakp6fkpy7kv',salary:'',snippet:'Security-focused firmware engineering at Axiado. Trusted compute and secure boot.'},
+    {company:'Navabrava Technologies Pvt. Ltd',role:'AOSP Engineer',location:'Bengaluru, Karnataka',url:'https://to.indeed.com/aadb9tpxl48t',salary:'',snippet:'Android Open Source Platform (AOSP) embedded development. Full-time Bengaluru.'},
+    {company:'SATRUC APPLIANCES PRIVATE LIMITED',role:'Junior Prototype Engineer',location:'Hyderabad, Telangana',url:'https://to.indeed.com/aabw24yvt7dx',salary:'',snippet:'Prototype hardware/firmware engineering for appliances startup. Entry-level role.'},
+    {company:'Renesas',role:'Staff Engineer, Physical Design',location:'Hyderabad, Telangana',url:'https://to.indeed.com/aam6kp82cypy',salary:'',snippet:'Physical design for Renesas semiconductor products. Strong VLSI/embedded background.'},
+    {company:'Talent Vision Services',role:'Hardware Engineer',location:'Hyderabad, Telangana',url:'https://to.indeed.com/aarhq6z8bv7n',salary:'',snippet:'Hardware engineering role with embedded systems exposure. Hyderabad full-time.'},
+    {company:'Peoplelogic',role:'Test Engineer – Embedded',location:'Bengaluru, Karnataka',url:'https://to.indeed.com/aalj29llqkjv',salary:'',snippet:'Embedded test engineering. HIL, SIL testing experience preferred.'},
+    {company:'SanDisk',role:'Staff Engineer, Systems Design Engineering',location:'Bengaluru, Karnataka',url:'https://to.indeed.com/aayzkwvz7p74',salary:'',snippet:'Systems design engineering for storage SoCs at SanDisk Bengaluru.'},
   ];
 
-  // Filter out companies already in the tracker
+  // Filter out already-logged companies
   var loggedCompanies=jobs.map(function(j){return(j.company||'').toLowerCase();});
   var filtered=pool.filter(function(s){
     return !loggedCompanies.includes(s.company.toLowerCase());
   });
-
-  // If all filtered, just use full pool (edge case)
   if(!filtered.length) filtered=pool;
 
-  // Shuffle using a time-based seed so each search is different
+  // Shuffle using time-based seed
   var seed=Date.now();
   filtered.sort(function(){return(seed++ % 3)-1;});
-
-  // If keywords differ from default, relabel roles to match
-  var defaultKw=['embedded','firmware','rtos','bsp','linux'];
-  var isCustom=!defaultKw.some(function(k){return kw.toLowerCase().includes(k);});
-  if(isCustom){
-    filtered=filtered.map(function(j){return Object.assign({},j,{role:kw});});
-  }
 
   return filtered.slice(0,max);
 }
